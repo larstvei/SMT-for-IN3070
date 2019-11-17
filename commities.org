@@ -1,0 +1,198 @@
+#+TITLE: Exam committees
+#+AUTHOR: Lars Tveito
+
+* Introduction
+
+  At the Department of Informatics (University of Oslo), all exams are
+  corrected by a committee consisting of two examiners. For large courses,
+  there are often many examiners where some wants to correct more than others.
+  The administration is responsible for forming these committees. Sometimes
+  there are additional constraints on what examiners can form a committee (the
+  typical example being that two examiners are professors and two are master
+  students).
+
+  Before digitizing exams at the department, the administration would have
+  physical copies of the exam to distribute. This would actually make it easier
+  to form the committees, because the constraints could be handled on the fly.
+  When digitized, the problem would essentially turn into a math problem which
+  is not particularly easy to solve.
+
+  This is an actual email (in Norwegian) forwarded to me from someone in the
+  administration:
+
+  #+BEGIN_QUOTE
+  Mine mattekunnskaper er tydeligvis fraværende. Jeg klarer ikke finne en
+  fornuftig løsning på dette:
+
+  | A: | 158 |
+  | B: | 150 |
+  | C: | 108 |
+  | D: |  60 |
+  | E: |  60 |
+  | F: |  15 |
+
+  Det er snakk om sensur i inf1300 med 566 besvarelser. D og E kan ikke rette
+  mot hverandre. De bør helst rette mot B eller C.
+
+  Har du et bra forslag til meg? Jeg blir GAL. Det var bedre før, da jeg hadde
+  besvarelsene fysisk å kunne telle ark.
+
+  Har du mulighet til å hjelpe en stakkar?
+
+  Takk
+  #+END_QUOTE
+
+  Being programmers who have recently heard of this thing called SMT-solving,
+  we happily research the subject in trying to find a general solution to this
+  cry for help.
+
+* Satisfiability modulo theories (SMT)
+
+  Satisfiability refers to solving satisfiability problems, i.e. given a first
+  order logical formula $\phi$, decide whether or not there exists a model
+  $\mathcal{M}$ such that $\mathcal{M} \models \phi$. In general, this is an
+  undecidable problem. However, there are theories within first order logic
+  that are decidable. SMT solvers can produce models that satisfy a set of
+  formulas for many useful theories.
+
+  The solver we will be using is [[https://github.com/Z3Prover/z3][Z3]].
+
+** Theories
+
+   Example of theories can be the theory of booleans (or propositional logic),
+   integers or real numbers with equations and inequations, or other common
+   programming concepts like arrays or bitvectors. Z3 supports solving
+   constraint problems in such theories. More formally, we define theories as
+   follows:
+
+   #+BEGIN_definition
+   A theory is a set of first order logic formulas, closed under implication.
+   #+END_definition
+
+   We can imagine how this might work. The natural numbers can, for instance,
+   be expressed with the Peano axioms.
+
+   1. $\forall x \in \mathbb{N} \ (0 \neq  S ( x ))$
+   2. $\forall x, y \in \mathbb{N} \ (S( x ) =  S( y ) \Rightarrow x = y)$
+   3. $\forall x \in \mathbb{N} \ (x  + 0 = x )$
+   4. $\forall x, y \in \mathbb{N} \ (x + S( y ) =  S( x + y ))$
+   5. $\forall x \in \mathbb{N} \ (x \cdot 0 = 0)$
+   6. $\forall x, y \in \mathbb{N} \ (x \cdot  S ( y ) = x \cdot y + x )$
+
+   In addition, one axiom is added to formalize induction. Because a theory is
+   closed under implication, the theory consists of all true first-order
+   propositions about natural numbers.
+
+   However, in Z3, we don't see such axioms; they just provide the formal
+   justification for implementing special solvers for problem domains like
+   natural numbers other commonly used theories. In z3, we could write
+   something like this:
+
+   #+BEGIN_SRC z3
+   (declare-const a Int)
+   (declare-const b Int)
+   (declare-const c Int)
+
+   (assert (< 0 a b c))
+
+   (assert (= (+ (* a a) (* b b)) (* c c)))
+
+   (check-sat)
+   (get-model)
+   #+END_SRC
+
+   This encodes two constraints
+   - $\phi_1 = 0 < a < b < c$
+   - $\phi_2 = a^2 + b^2 = c^2$
+   where $a,b,c$ are whole numbers. Then we ask Z3 to produce a model
+   $\mathcal{M}$ such that $\mathcal{M} \models \phi_1 \land \phi_2$, which
+   outputs:
+
+   #+BEGIN_EXAMPLE
+   sat
+   (model
+     (define-fun c () Int
+       5)
+     (define-fun b () Int
+       4)
+     (define-fun a () Int
+       3)
+   )
+   #+END_EXAMPLE
+
+   The first line ~sat~ indicates that the formula is satisfiable, and produce
+   a model where $a=3$, $b=4$ and $c=5$.
+
+** Many-sorted first order logic
+
+   Z3 implements [[http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf][SMT-LIB]], a standardized syntax and semantics for SMT solvers.
+   It's underlying logic is a /Many-sorted first order logic/, where values
+   must have an associated sort (which is a basic form of type). A signature in
+   a many-sorted first logic is defined as follows.
+
+   #+BEGIN_definition
+   A signature $\Sigma = (S, F, P)$ consists of a countable set of
+   - Sorts $S$.
+   - Function symbols $F$, where each member is a function symbol $f$ with an
+     associated type $s_1 \times \dots \times s_n \to s$, where $s \in S$ and
+     $s_1, \dots, s_n \in S$. Constants are simply zero-arity function symbols.
+   - Predicate symbols $P$, where each predicate has an associated type $s_1
+     \times \dots \times s_n$. We assume an equality $=_s$ predicate with type
+     $s \times s$ for all sorts in $S$.
+   #+END_definition
+
+   The equality relation will be denoted $=$, letting the sort remain implicit.
+
+   For example, the signature for the integers can be formalized as
+   $\Sigma_{int} = (S_{Int}, F_{Int}, P_{Int})$ where
+   - $S_{Int} = \{Int\}$
+   - $F_{Int} = \{0, 1, +, -, *\}$ where
+     - $0 : \to Int$
+     - $1 : \to Int$
+     - $+ : Int \times Int \to Int$
+     - $- : Int \times Int \to Int$
+     - $* : Int \times Int \to Int$
+   - $P_{Int} = \{<, =\}$ where
+     - $< : Int \times Int$
+     - $= : Int \times Int$
+
+* Back to the problem
+
+  We have 283 exams. Every exam must be corrected by a committee consisting of
+  two examiners. Each examiner has an associated capacity of exams they want to
+  correct. Examiners D and E can't be in the same committee, and should rather
+  be in committee with B or C. We prefer a smaller number of committees.
+
+  #+BEGIN_SRC python
+  from z3 import *
+
+  exams = 283
+  examiners = 'ABCDEF'
+  capacities = [158, 150, 108, 60, 60, 15]
+  n = len(examiners)
+
+  s = Optimize()
+
+  committees = [Int('%s x %s' % (a, b))
+  for a in examiners
+  for b in examiners]
+
+  # Make sure we can correct all exams
+  # Note we count all committees twice 🤷‍♀️
+  allcorrected = [2*exams == sum(committees)/2]
+
+  # No one can correct with themselves (using triangular numbers!)
+  distinct = [committees[(i*(i+1))//2] == 0 for i in range(n)]
+
+  # Respect the capacities
+  # respectcapacities =
+
+  s.add(allcorrected + distinct)
+  s.check()
+  print(s.model())
+  #+END_SRC
+
+* COMMENT Local variables
+  # Local Variables:
+  # eval: (add-hook 'after-save-hook 'org-html-export-to-html nil t)
+  # End:
