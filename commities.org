@@ -53,7 +53,7 @@
   $\mathcal{M}$ such that $\mathcal{M} \models \phi$. In general, this is an
   undecidable problem. However, there are theories within first order logic
   that are decidable. SMT solvers can produce models that satisfy a set of
-  formulas for many useful theories.
+  formulas for many useful theories, some of which are satisfiable.
 
   The solver we will be using is [[https://github.com/Z3Prover/z3][Z3]].
 
@@ -121,14 +121,15 @@
    #+END_EXAMPLE
 
    The first line ~sat~ indicates that the formula is satisfiable, and produce
-   a model where $a=3$, $b=4$ and $c=5$.
+   a model where $a^\mathcal{M}=3$, $b^\mathcal{M}=4$ and $c^\mathcal{M}=5$.
 
 ** Many-sorted first order logic
 
    Z3 implements [[http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf][SMT-LIB]], a standardized syntax and semantics for SMT solvers.
    It's underlying logic is a /Many-sorted first order logic/, where values
-   must have an associated sort (which is a basic form of type). A signature in
-   a many-sorted first logic is defined as follows.
+   must have an associated sort (which is a basic form of type). Think of it as
+   partitioning the domain, where each sort corresponds to a part. A signature
+   in a many-sorted first logic is defined as follows.
 
    #+BEGIN_definition
    A signature $\Sigma = (S, F, P)$ consists of a countable set of
@@ -146,15 +147,11 @@
    For example, the signature for the integers can be formalized as
    $\Sigma_{int} = (S_{Int}, F_{Int}, P_{Int})$ where
    - $S_{Int} = \{Int\}$
-   - $F_{Int} = \{0, 1, +, -, *\}$ where
-     - $0 : \to Int$
-     - $1 : \to Int$
-     - $+ : Int \times Int \to Int$
-     - $- : Int \times Int \to Int$
-     - $* : Int \times Int \to Int$
-   - $P_{Int} = \{<, =\}$ where
-     - $< : Int \times Int$
-     - $= : Int \times Int$
+   - $F_{Int} = \{0, 1, +, -, *\}$ where the constant symbols $0, 1$ has a type
+     signature $\to Int$ and the function symbols $+,-,*$ has a type signature
+     $Int \times Int \to Int$.
+   - $P_{Int} = \{<, =\}$ where the predicate symbols $<, =$ has type signature
+     $Int \times Int$.
 
 * Back to the problem
 
