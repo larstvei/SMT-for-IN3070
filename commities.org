@@ -1,5 +1,6 @@
-#+TITLE: Exam committees
 #+AUTHOR: Lars Tveito
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="Rethink/rethink.css" />
+#+OPTIONS: toc:nil num:nil html-style:nil
 
 * Introduction
 
@@ -24,12 +25,12 @@
   Mine mattekunnskaper er tydeligvis fraværende. Jeg klarer ikke finne en
   fornuftig løsning på dette:
 
-  | A: | 158 |
+  | A: | 160 |
   | B: | 150 |
-  | C: | 108 |
+  | C: | 110 |
   | D: |  60 |
   | E: |  60 |
-  | F: |  15 |
+  | F: |  30 |
 
   Det er snakk om sensur i inf1300 med 566 besvarelser. D og E kan ikke rette
   mot hverandre. De bør helst rette mot B eller C.
@@ -160,34 +161,260 @@
   correct. Examiners D and E can't be in the same committee, and should rather
   be in committee with B or C. We prefer a smaller number of committees.
 
-  #+BEGIN_SRC python
+  We use the [[https://ericpony.github.io/z3py-tutorial/guide-examples.htm][Python API for Z3]]. Create a Python file and populate it with:
+
+  #+BEGIN_SRC python :tangle committees.py
   from z3 import *
-
-  exams = 283
-  examiners = 'ABCDEF'
-  capacities = [158, 150, 108, 60, 60, 15]
-  n = len(examiners)
-
-  s = Optimize()
-
-  committees = [Int('%s x %s' % (a, b))
-  for a in examiners
-  for b in examiners]
-
-  # Make sure we can correct all exams
-  # Note we count all committees twice 🤷‍♀️
-  allcorrected = [2*exams == sum(committees)/2]
-
-  # No one can correct with themselves (using triangular numbers!)
-  distinct = [committees[(i*(i+1))//2] == 0 for i in range(n)]
-
-  # Respect the capacities
-  # respectcapacities =
-
-  s.add(allcorrected + distinct)
-  s.check()
-  print(s.model())
   #+END_SRC
+
+  This allows us to generate instances for Z3 to solve with Python.
+
+** Instances
+
+   Let's formulate an instance as a four-tuple $(N, C, S, A)$ where
+   - $N$ is the number of exams to correct
+   - $C$ is a list of capacities, where each examiner is identified by
+     her position of the list
+   - $S$ is a relation, relating an examiner to one they /should/ form a
+     committee with
+   - $A$ is a relation, relating examiners that we should /avoid/ placing in
+     the same committee
+
+   The instance, described in the introduction, can be represented with the
+   following Python code:
+
+   #+BEGIN_SRC python :tangle committees.py
+   def example_instance():
+       N = 283
+       #    A    B    C    D   E   F
+       C = [160, 150, 110, 60, 60, 30]
+       S = {3 : {1, 2}, 4 : {1, 2}}
+       A = {frozenset([3, 4])}
+       return (N, C, S, A)
+   #+END_SRC
+
+** Constraint modeling
+
+   We need to capture our intention with first-order logic formulas, and
+   preferably quantifier-free. In SMT-solving, quantifier-free means that we
+   only try to solve a set of constraints where no variable is bound by a
+   quantifier; these are usually much easier to solve. Rather, we use a finite
+   set of constant symbols, with some associated sort, and try to find an
+   interpretation for them.
+
+   The end result needs to be a set of committees, where each committee
+   consists of two examiners with a number of exams to correct. An important
+   part of finding a reasonable encoding is to balance what part of the problem
+   should be solved in pure Python and what should be solved by the SMT-solver.
+
+** Modeling committees
+
+   A natural encoding could be modeling all possible committees as an integer
+   constant, where the value assigned to a committee corresponds to the number
+   of exams they correct.
+
+   We let a committee be a set of two exactly two examiners, identified by
+   their index in the capacity list. Let's write a function that takes a list
+   of capacities, and return a dictionary, associating (Python) committees to
+   their corresponding integer constant.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def committees(C):
+       cs = {frozenset([i,j])
+             for i in range(len(C))
+             for j in range(i+1, len(C))}
+       return {c : Int(str(c)) for c in cs}
+   #+END_SRC
+
+   # However, we also need to capture that each individual examiner don't have to
+   # correct more exams than their given capacity. A good rule of thumb in
+   # SMT-solving is to minimize the number of constants we need to find a
+   # interpretation for.
+
+   Now we must ensure that no examiner receives more exams than their capacity.
+   Given an examiner $i$, where $0 <= i < N$, we let $c_i$ denote the set of
+   all committees $i$ participates in. Then $\sum{c_i} <= C[i]$, i.e. the sum
+   of the committees $c_i$ does not exceed the capacity of the examiner $i$. We
+   write a function that encodes these constraints.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def capacity_constraint(comms, C):
+       return [sum(comms[c] for c in comms if i in c) <= C[i]
+               for i in range(len(C))]
+   #+END_SRC
+
+   Because we are modeling committees as integers, we have to be careful not to
+   allow committees correcting a negative number of exams.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def non_negative_constraint(comms):
+       return [0 <= comms[c] for c in comms]
+   #+END_SRC
+
+   The $S$ relation is sort of odd. That one examiner /should/ form a committee
+   with someone they relate to by $S$. Let's interpret it as $e_1$ should not
+   form a committee to someone they are not related to by $S$.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def should_correct_with_constraint(comms, S, C):
+       examiners = set(range(len(C)))
+       return [comms[frozenset([i, j])] == 0
+               for i in S
+               for j in examiners - S[i]
+               if j != i]
+   #+END_SRC
+
+   The $A$ relation is similar, and easier.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def avoid_correct_with_constraint(comms, A):
+       return [comms[frozenset([i, j])] == 0 for i, j in A]
+   #+END_SRC
+
+   Each committee will correct their exams to times, so if the sum of all the
+   committees is $N$, then all exams have been corrected twice. Let's encode
+   that as a constraint.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def all_corrected_constraint(comms, N):
+       return [sum(comms.values()) == N]
+   #+END_SRC
+
+   Let's collect all the constraints in a single list.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def constraints(instance):
+       N, C, S, A = instance
+       comms = committees(C)
+       return (capacity_constraint(comms, C) +
+               non_negative_constraint(comms) +
+               all_corrected_constraint(comms, N) +
+               should_correct_with_constraint(comms, S, C) +
+               avoid_correct_with_constraint(comms, A))
+   #+END_SRC
+
+** Invoking Z3
+
+   Now that we have functions that model our problem, we can invoke Z3.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def check_instance(instance):
+       s = Solver()
+
+       s.add(constraints(instance))
+
+       s.check()
+       return s.model()
+   #+END_SRC
+
+   Calling ~check_instance(example_instance())~ returns a model:
+
+   #+BEGIN_EXAMPLE
+   [frozenset({0, 1}) = 83,
+    frozenset({0, 2}) = 47,
+    frozenset({0, 5}) = 30,
+    frozenset({2, 3}) = 0,
+    frozenset({1, 2}) = 3,
+    frozenset({1, 3}) = 60,
+    frozenset({2, 5}) = 0,
+    frozenset({1, 5}) = 0,
+    frozenset({2, 4}) = 60,
+    frozenset({4, 5}) = 0,
+    frozenset({0, 4}) = 0,
+    frozenset({3, 5}) = 0,
+    frozenset({3, 4}) = 0,
+    frozenset({0, 3}) = 0,
+    frozenset({1, 4}) = 0]
+   #+END_EXAMPLE
+
+   This is not especially readable, so let's write a quick prettyprinter.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def prettyprint(m):
+       for k in m:
+           cname = k.name()[10:-1]
+           cval = m[k].as_long()
+           if cval > 0:
+               print(cname + ':', cval)
+   #+END_SRC
+
+   This outputs the something like:
+
+   #+BEGIN_EXAMPLE
+   {0, 1}: 23
+   {0, 2}: 110
+   {0, 5}: 23
+   {1, 3}: 60
+   {1, 5}: 7
+   {1, 4}: 60
+   #+END_EXAMPLE
+
+   Note the /something like/. There are multiple ways to satisfy this set of
+   constraints, and Z3 only guarantees to provide /some/ solution (if one
+   exists).
+
+* Optimization
+
+  So far, we have found a way to model the problem and satisfy all the
+  constraint. However, it is preferable to have fewer committees, because all
+  committees have to discuss the exams, causing administrative overhead. Z3
+  also provides optimization, meaning that we can find a smallest or largest
+  solution for numeric theories.
+
+** Minimize committees
+
+   In our case, we want to minimize the number of committees.
+
+    #+BEGIN_SRC python :tangle committees.py
+    def minimize_committees(comms):
+        return sum(If(0 < comms[c], 1, 0) for c in comms)
+    #+END_SRC
+
+    Now we can invoke Z3, using an ~Optimize~ instance and adding our
+    minimization constraint.
+
+    #+BEGIN_SRC python :tangle committees.py
+    def optimize_instance(instance):
+        o = Optimize()
+
+        o.add(constraints(instance))
+        o.minimize(minimize_committees(committees(instance)))
+
+        o.check()
+        return o.model()
+    #+END_SRC
+
+    There is still more than one way to satisfy this model, but we are
+    guaranteed to get a minimal number of committees (which is 6 in our
+    example).
+
+    #+BEGIN_EXAMPLE
+    {2, 3}: 56
+    {0, 1}: 137
+    {2, 5}: 7
+    {0, 5}: 23
+    {2, 4}: 47
+    {1, 4}: 13
+    #+END_EXAMPLE
+
+** COMMENT Implementation draft
+
+   #+BEGIN_SRC python
+   N, C, S, A = instance = example_instance()
+
+   comms = committees(C)
+
+   s = Solver()
+
+   s.add(capacity_constraint(comms, C))
+   s.add(non_negative_constraint(comms))
+   s.add(all_corrected_constraint(comms, N))
+   s.add(should_correct_with_constraint(comms, S, C))
+   s.add(avoid_correct_with_constraint(comms, A))
+
+   s.check()
+   print(s.model())
+   #+END_SRC
 
 * COMMENT Local variables
   # Local Variables:
