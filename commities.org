@@ -32,7 +32,7 @@
   | E: |  60 |
   | F: |  30 |
 
-  Det er snakk om sensur i inf1300 med 566 besvarelser. D og E kan ikke rette
+  Det er snakk om sensur i inf1300 med 283 besvarelser. D og E kan ikke rette
   mot hverandre. De bør helst rette mot B eller C.
 
   Har du et bra forslag til meg? Jeg blir GAL. Det var bedre før, da jeg hadde
@@ -167,18 +167,21 @@
   from z3 import *
   #+END_SRC
 
-  This allows us to generate instances for Z3 to solve with Python.
+  This allows us to generate instances with Python that Z3 can solve.
 
 ** Instances
 
    Let's formulate an instance as a four-tuple $(N, C, S, A)$ where
    - $N$ is the number of exams to correct
    - $C$ is a list of capacities, where each examiner is identified by
-     her position of the list
-   - $S$ is a relation, relating an examiner to one they /should/ form a
-     committee with
-   - $A$ is a relation, relating examiners that we should /avoid/ placing in
-     the same committee
+     their position of the list
+   - $S$ is a mapping from a single examiner to a set of examiners they
+     /should/ form a committee with
+   - $A$ is a symmetric relation, relating examiners that we should /avoid/
+     placing in the same committee
+
+   We define a committee as a set of exactly two examiners (identified by their
+   index in the list of capacities).
 
    The instance, described in the introduction, can be represented with the
    following Python code:
@@ -205,18 +208,20 @@
    The end result needs to be a set of committees, where each committee
    consists of two examiners with a number of exams to correct. An important
    part of finding a reasonable encoding is to balance what part of the problem
-   should be solved in pure Python and what should be solved by the SMT-solver.
+   should be solved with Python and what should be solved by the SMT-solver. My
+   experience is that a good rule of thumb is to move as much structural
+   complexity to Python and encode the Z3 instance with simple structures.
 
 ** Modeling committees
 
-   A natural encoding could be modeling all possible committees as an integer
-   constant, where the value assigned to a committee corresponds to the number
-   of exams they correct.
+   A natural encoding could be modeling a committee as an integer constant,
+   where the value assigned to a committee corresponds to the number of exams
+   they correct. It is quite easy to compute all possible committees, and make
+   one integer constant for each of them.
 
-   We let a committee be a set of two exactly two examiners, identified by
-   their index in the capacity list. Let's write a function that takes a list
-   of capacities, and return a dictionary, associating (Python) committees to
-   their corresponding integer constant.
+   Let's write a function that takes a list of capacities, and return a
+   dictionary, associating (Python) committees to their corresponding integer
+   constant.
 
    #+BEGIN_SRC python :tangle committees.py
    def committees(C):
@@ -225,11 +230,6 @@
              for j in range(i+1, len(C))}
        return {c : Int(str(c)) for c in cs}
    #+END_SRC
-
-   # However, we also need to capture that each individual examiner don't have to
-   # correct more exams than their given capacity. A good rule of thumb in
-   # SMT-solving is to minimize the number of constants we need to find a
-   # interpretation for.
 
    Now we must ensure that no examiner receives more exams than their capacity.
    Given an examiner $i$, where $0 <= i < N$, we let $c_i$ denote the set of
