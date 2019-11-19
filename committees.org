@@ -81,11 +81,12 @@ cry for help.
 
    In addition, one axiom is added to formalize induction. Because a theory is
    closed under implication, the theory consists of all true first-order
+   propositions that follows from these axioms, which corresponds to the true
    propositions about natural numbers.
 
    However, in Z3, we don't see such axioms; they just provide the formal
    justification for implementing special solvers for problem domains like
-   natural numbers other commonly used theories. In z3, we could write
+   natural numbers other commonly used theories. In Z3, we could write
    something like this:
 
    #+BEGIN_SRC z3
@@ -198,11 +199,11 @@ cry for help.
 ** Constraint modeling
 
    We need to capture our intention with first-order logic formulas, and
-   preferably quantifier-free. In SMT-solving, quantifier-free means that we
-   only try to solve a set of constraints where no variable is bound by a
-   quantifier; these are usually much easier to solve. Rather, we use a finite
-   set of constant symbols, with some associated sort, and try to find an
-   interpretation for them.
+   preferably quantifier-free. In the context of SMT-solving, quantifier-free
+   means that we only try to solve a set of constraints where no variable is
+   bound by a quantifier; these are usually much easier to solve. Rather, we
+   use a finite set of constant symbols, with some associated sort, and try to
+   find an interpretation for them.
 
    The end result needs to be a set of committees, where each committee
    consists of two examiners with a number of exams to correct. An important
@@ -215,12 +216,13 @@ cry for help.
 
    A natural encoding could be modeling a committee as an integer constant,
    where the value assigned to a committee corresponds to the number of exams
-   they correct. It is quite easy to compute all possible committees, and make
+   they correct. If the committee don't are not assigned any exams, we discard
+   it completely. It is quite easy to compute all possible committees, and make
    one integer constant for each of them.
 
    Let's write a function that takes a list of capacities, and return a
-   dictionary, associating (Python) committees to their corresponding integer
-   constant.
+   dictionary, associating committees to their corresponding integer constant.
+   Remember that we represent a committee as a set of exactly two examiners.
 
    #+BEGIN_SRC python :tangle committees.py
    def committees(C):
@@ -230,11 +232,13 @@ cry for help.
        return {c : Int(str(c)) for c in cs}
    #+END_SRC
 
+** Capacity constraints
+
    Now we must ensure that no examiner receives more exams than their capacity.
-   Given an examiner $i$, where $0 <= i < N$, we let $c_i$ denote the set of
+   Given an examiner $i$, where $0 <= i < |C|$, we let $c_i$ denote the set of
    all committees $i$ participates in. Then $\sum{c_i} <= C[i]$, i.e. the sum
-   of the committees $c_i$ does not exceed the capacity of the examiner $i$. We
-   write a function that encodes these constraints.
+   of the exams corrected by committees in $c_i$ does not exceed the capacity
+   of the examiner $i$. We write a function that encodes these constraints.
 
    #+BEGIN_SRC python :tangle committees.py
    def capacity_constraint(comms, C):
