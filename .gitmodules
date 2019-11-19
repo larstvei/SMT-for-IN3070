@@ -1,0 +1,3 @@
+[submodule "Rethink"]
+	path = Rethink
+	url = git@github.com:larstvei/Rethink.git
