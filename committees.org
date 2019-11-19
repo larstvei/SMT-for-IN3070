@@ -527,25 +527,6 @@ cry for help.
        return o.model()
    #+END_SRC
 
-** COMMENT Implementation draft
-
-   #+BEGIN_SRC python
-   N, C, S, A = instance = example_instance()
-
-   comms = committees(C)
-
-   s = Solver()
-
-   s.add(capacity_constraint(comms, C))
-   s.add(non_negative_constraint(comms))
-   s.add(all_corrected_constraint(comms, N))
-   s.add(should_correct_with_weight(comms, S, C))
-   s.add(avoid_correct_with_constraint(comms, A))
-
-   s.check()
-   print(s.model())
-   #+END_SRC
-
 * COMMENT Local variables
   # Local Variables:
   # eval: (add-hook 'after-save-hook 'org-html-export-to-html nil t)
