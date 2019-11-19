@@ -8,12 +8,12 @@ At the Department of Informatics (University of Oslo), all exams are corrected
 by a committee consisting of two examiners. For large courses, there are often
 many examiners where some want to correct more than others. The administration
 is responsible for forming these committees. Sometimes there are additional
-constraints on which examiners can and cannot form a committee, for example due
-to different levels of experience.
+constraints on which examiners can and cannot form a committee, for example,
+due to different levels of experience.
 
 Before digitizing exams at the department, the administration would have
 physical copies of the exam to distribute. This would actually make it easier
-to form the committees, because the constraints could be handled on the fly.
+to form the committees because the constraints could be handled on the fly.
 When digitized, the problem would essentially turn into a math problem which in
 the general case is not particularly easy to solve.
 
@@ -47,10 +47,10 @@ using SMT-solving.
 
 * Satisfiability modulo theories (SMT)
 
-  SMT-solvers are tools for solving satisfiability problems, i.e. given a first
-  order logical formula $\phi$, decide whether or not there exists a model
-  $\mathcal{M}$ such that $\mathcal{M} \models \phi$. In general, this is an
-  undecidable problem. However, there are theories within first order logic
+  SMT-solvers are tools for solving satisfiability problems, i.e. given a
+  first- order logical formula $\phi$, decide whether or not there exists a
+  model $\mathcal{M}$ such that $\mathcal{M} \models \phi$. In general, this is
+  an undecidable problem. However, there are theories within first-order logic
   that are decidable. SMT solvers can produce models that satisfy a set of
   formulas for many useful theories, some of which are decidable. It is natural
   to think of SMT as a generalization of SAT, which is satisfiability for
@@ -67,7 +67,7 @@ using SMT-solving.
    follows:
 
    #+BEGIN_definition
-   A theory is a set of first order logic formulas, closed under logical
+   A theory is a set of first-order logic formulas, closed under logical
    consequence.
    #+END_definition
 
@@ -126,14 +126,14 @@ using SMT-solving.
    a model where $a^\mathcal{M}=3$, $b^\mathcal{M}=4$ and $c^\mathcal{M}=5$.
 
    Note that we would get a different answer if we declared the constant
-   symbols as real numbers, because Z3 would use the theory for reals to
-   satisfy the constraints.
+   symbols as real numbers because Z3 would use the theory for reals to satisfy
+   the constraints.
 
-** Many-sorted first order logic
+** Many-sorted first-order logic
 
    Z3 implements [[http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf][SMT-LIB]], a standardized syntax and semantics for SMT solvers.
-   It's underlying logic is a /Many-sorted first order logic/, where values
-   must have an associated sort (which is a basic form of type). Think of it as
+   Its underlying logic is a /Many-sorted first-order logic/, where values must
+   have an associated sort (which is a basic form of type). Think of it as
    partitioning the domain, where each sort corresponds to a part. A signature
    in a many-sorted first logic is defined as follows.
 
@@ -199,7 +199,7 @@ using SMT-solving.
 
    The code below suggests a Python representation of a problem instance. It
    is, as you must have noticed, blurred (until you click it). This is to
-   encourage the reader to solve the problem on their own, and emphasize that
+   encourage the reader to solve the problem on their own and emphasize that
    what will be presented is a mere suggestion on how to attack the problem.
 
    #+BEGIN_SRC python :tangle committees.py
@@ -232,9 +232,9 @@ using SMT-solving.
 
    A natural encoding could be modeling a committee as an integer constant,
    where the value assigned to a committee corresponds to the number of exams
-   they correct. If the committee don't are not assigned any exams, we discard
-   it completely. It is quite easy to compute all possible committees, and make
-   one integer constant for each of them.
+   they correct. If the committee is not assigned any exams, we discard it
+   completely. It is quite easy to compute all possible committees and make one
+   integer constant for each of them.
 
    Let's write a function that takes a list of capacities, and return a
    dictionary, associating committees to their corresponding integer constant.
@@ -275,7 +275,7 @@ using SMT-solving.
    The $S$ relation is sort of odd. That one examiner /should/ form a committee
    with someone they relate to by $S$. This is not an absolute requirement,
    which is not ideal for a satisfiability problem, so we will ignore this
-   constraint for now. The $A$ relation is similar, but clearer. For any pair
+   constraint for now. The $A$ relation is similar but clearer. For any pair
    $(i,j) \in A$, we don't form a committee consisting of those examiners.
 
    #+BEGIN_SRC python :tangle committees.py
@@ -285,7 +285,7 @@ using SMT-solving.
 
 ** All exams are corrected constraint
 
-   Each committee correct their exams two times (once by each examiner), so if
+   Each committee corrects their exams two times (once by each examiner), so if
    the sum of all the committees is $N$, then all exams have been corrected
    twice (presumably by two different examiners). Let's encode that as a
    constraint.
@@ -384,7 +384,7 @@ using SMT-solving.
 
 ** Minimize committees
 
-   In our case, we want to minimize the number of committees. First we write a
+   In our case, we want to minimize the number of committees. First, we write a
    function to find the number of committees which we will soon minimize.
 
    #+BEGIN_SRC python :tangle committees.py
@@ -493,10 +493,10 @@ using SMT-solving.
 
    Maybe we can try to satisfy (🙃) all the examiners by trying to close the
    gap between their capacity and the number of exams they end up correcting.
-   Usually at the Department, there is quite a lot of flex in these capacities;
-   if you are willing to correct $50$ exams, then you will most likely be okey
-   with correcting $40$ and /actually/ willing to correct $52$. Therefore, we
-   can try to add some slack to the capacity.
+   Usually, there is quite a lot of flex in these capacities; if you are
+   willing to correct $50$ exams, then you will most likely be okay with
+   correcting $40$ and /actually/ willing to correct $52$. Therefore, we can
+   try to add some slack to the capacity.
 
    In reality, the numbers from the original email were
 
@@ -597,7 +597,7 @@ using SMT-solving.
    C, D: 65
    #+END_EXAMPLE
 
-   At this point I hope you have realized that we now have a tool which we can
+   At this point, I hope you have realized that we now have a tool that we can
    use to derive a very flexible and general solution to this sort of problem.
 
 * Wrapping up
@@ -610,19 +610,19 @@ using SMT-solving.
 
    SAT is an NP-complete problem, and solving for richer theories does not
    reduce this complexity. So in general, SMT solving is NP-complete and not
-   even decidable in all cases. If you are presented with a problem which has a
-   known polynomial algorithm, then don't use a SMT solver.
+   even decidable in all cases. If you are presented with a problem that has a
+   known polynomial algorithm, then don't use an SMT solver.
 
-   In addition, it is important to try to compartmentalize your SMT-instances;
-   solving many small SMT-instances is likely to be more efficient than solving
-   one large. Look for ways to divide your problem into sub-problems, and try
-   to exclude the "obvious" part of a problem from the SMT-instance.
+   It is important to try to compartmentalize your SMT-instances; solving many
+   small SMT-instances is likely to be more efficient than solving one large.
+   Look for ways to divide your problem into sub-problems, and try to exclude
+   the "obvious" part of a problem from the SMT-instance.
 
    An example where we violated this is with the requirement that examiners
    $(i,j) \in A$ can not form a committee. Rather than encoding that those
    committees are not given any exams to correct, we could simply remove those
    integer constants. Note that this is not a dramatic example, as the
-   constraint is very simple, and most likely trivial for Z3 to handle.
+   constraint is very simple and most likely trivial for Z3 to handle.
 
 ** When to use SMT
 
@@ -632,17 +632,17 @@ using SMT-solving.
    Another situation is when you currently don't know how hard the problem is.
    Specifying your problem in terms of constraints helps you understand the
    problem. Often, you will be able to solve small instances of the problem,
-   which can give you insights to how you might solve the problem more
+   which can give you insights into how you might solve the problem more
    efficiently with a more fine-tuned algorithm.
 
    A similar situation is when you don't exactly know what your problem is.
    This might sound like a weird situation, but my guess is that it happens
-   quite frequently. Using a SMT solver as a part of a prototype gives a lot of
-   flexibility because of its declarative nature. Changing your problem only
-   slightly, often leads to a major rewrite of your algorithm; with SMT
-   solving, this is usually not the case, because it is just a matter of adding
-   or removing some constraints. Once you have a well-functioning prototype,
-   you can start looking for a more efficient solution if necessary.
+   quite frequently. Using an SMT solver as a part of a prototype gives a lot
+   of flexibility because of its declarative nature. Changing your problem only
+   slightly often leads to a major rewrite of your algorithm; with SMT solving,
+   this is usually not the case, because it is just a matter of adding or
+   removing some constraints. Once you have a well-functioning prototype, you
+   can start looking for a more efficient solution if necessary.
 
 ** Exercises for the curious
 
@@ -652,28 +652,28 @@ using SMT-solving.
 *** The exam committee problem
 
     Try to walk through the problem we have discussed here. Feel free to sneak
-    a peak at the code whenever you get stuck. You might find a more efficient
+    a peek at the code whenever you get stuck. You might find a more efficient
     encoding or a more elegant one. Maybe you want to make it accessible
-    through a web page, so that this example actually ends up helping the
+    through a web page so that this example actually ends up helping the
     administration with this problem. Play around, and let me know if you do
     something cool with it!
 
     Another exercise, which is by no means an easy one, is to show that this
     problem is in P or is NP-complete. Currently, we have not been able to
     prove it either way. Note that this is far from the interest area of
-    IN3070, but I find it interesting, and think maybe you do to.
+    IN3070, but I find it interesting, and think maybe you do too.
 
 *** Puzzles
 
-   Many puzzle games are NP-complete, and have a nice encoding in SMT.
+   Many puzzle games are NP-complete and have a nice encoding in SMT.
 
    Perhaps the most common example used when presenting SMT is [[https://en.wikipedia.org/wiki/Sudoku][Sudoku]]. Write
    one yourself, and if you get stuck there are many nice, and easily
    googleable, resources.
 
    Another example is [[https://en.wikipedia.org/wiki/Mastermind_(board_game)][Mastermind]]; if it's too hard, make the rules simpler.
-   [[https://projecteuler.net/problem=185][This problem from Project Euler]] is presents a simplified version of
-   mastermind, and can be solved quite elegantly with Z3.
+   [[https://projecteuler.net/problem=185][This problem from Project Euler]] presents a simplified version of Mastermind
+   and can be solved quite elegantly with Z3.
 
    Do you have a favorite puzzle game? See if you can model it as an SMT
    problem, and write a solver for it.
