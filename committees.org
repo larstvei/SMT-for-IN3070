@@ -599,6 +599,53 @@ cry for help.
    C, D: 65
    #+END_EXAMPLE
 
+   At this point I hope you have realized that we now have a tool which we can
+   use to derive a very flexible and general solution to this sort of problem.
+
+* Wrapping up
+
+  The goal of this example was to show that when presented a problem where
+  there is no obvious algorithm that suits it, then a tool like Z3 allows you
+  to describe a solution declaratively and provide a satisfying answer.
+
+** When not to use SMT
+
+   SAT is an NP-complete problem, and solving for richer theories does not
+   reduce this complexity. So in general, SMT solving is NP-complete and not
+   even decidable in all cases. If you are presented with a problem which has a
+   known polynomial algorithm, then don't use a SMT solver.
+
+   In addition, it is important to try to compartmentalize your SMT-instances;
+   solving many small SMT-instances is likely to be more efficient than solving
+   one large. Look for ways to divide your problem into sub-problems, and try
+   to exclude the "obvious" part of a problem from the SMT-instance.
+
+   An example where we violated this is with the requirement that examiners
+   $(i,j) \in A$ can not form a committee. Rather than encoding that those
+   committees are not given any exams to correct, we could simply remove those
+   integer constants. Note that this is not a dramatic example, as the
+   constraint is very simple, and most likely trivial for Z3 to handle.
+
+** When to use SMT
+
+   If your problem is known to be NP-complete and has an elegant formulation in
+   a many-sorted logic, then using tools like Z3 could be a very good idea.
+
+   Another situation is when you currently don't know how hard the problem is.
+   Specifying your problem in terms of constraints helps you understand the
+   problem. Often, you will be able to solve small instances of the problem,
+   which can give you insights to how you might solve the problem more
+   efficiently with a more fine-tuned algorithm.
+
+   A similar situation is when you don't exactly know what your problem is.
+   This might sound like a weird situation, but my guess is that it happens
+   quite frequently. Using a SMT solver as a part of a prototype gives a lot of
+   flexibility because of its declarative nature. Changing your problem only
+   slightly, often leads to a major rewrite of your algorithm; with SMT
+   solving, this is usually not the case, because it is just a matter of adding
+   or removing some constraints. Once you have a well-functioning prototype,
+   you can start looking for a more efficient solution if necessary.
+
 * COMMENT Local variables
   # Local Variables:
   # eval: (add-hook 'after-save-hook 'org-html-export-to-html nil t)
