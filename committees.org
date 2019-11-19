@@ -1,4 +1,4 @@
-#+TITLE: SMT for IN3170
+#+TITLE: SMT for IN3070
 #+AUTHOR: Lars Tveito
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="Rethink/rethink.css" />
 #+OPTIONS: toc:nil num:nil html-style:nil
@@ -103,11 +103,11 @@ cry for help.
    #+END_SRC
 
    This encodes two constraints
-   - $\phi_1 = 0 < a < b < c$
-   - $\phi_2 = a^2 + b^2 = c^2$
+   - $0 < a < b < c$
+   - $a^2 + b^2 = c^2$
    where $a,b,c$ are whole numbers. Then we ask Z3 to produce a model
-   $\mathcal{M}$ such that $\mathcal{M} \models \phi_1 \land \phi_2$, which
-   outputs:
+   $\mathcal{M}$ such that $\mathcal{M} \models (0 < a < b < c) \land (a^2 +
+   b^2 = c^2)$, which outputs:
 
    #+BEGIN_EXAMPLE
    sat
@@ -123,6 +123,10 @@ cry for help.
 
    The first line ~sat~ indicates that the formula is satisfiable, and produce
    a model where $a^\mathcal{M}=3$, $b^\mathcal{M}=4$ and $c^\mathcal{M}=5$.
+
+   Note that we would get a different answer if we declared the constant
+   symbols as real numbers, because Z3 would use the theory for reals to
+   satisfy the constraints.
 
 ** Many-sorted first order logic
 
@@ -154,6 +158,9 @@ cry for help.
    - $P_{Int} = \{<, =\}$ where the predicate symbols $<, =$ has type signature
      $Int \times Int$.
 
+   In Z3, the type signature function- and predicate symbols informs Z3 of what
+   theory it should apply.
+
 * Back to the problem
 
   We have 283 exams. Every exam must be corrected by a committee consisting of
@@ -161,7 +168,13 @@ cry for help.
   correct. Examiners D and E can't be in the same committee, and should rather
   be in committee with B or C. We prefer a smaller number of committees.
 
-  We use the [[https://ericpony.github.io/z3py-tutorial/guide-examples.htm][Python API for Z3]]. Create a Python file and populate it with:
+  We use the [[https://ericpony.github.io/z3py-tutorial/guide-examples.htm][Python API for Z3]]. Install with:
+
+  #+BEGIN_SRC sh
+   pip install z3-solver
+  #+END_SRC
+
+  Create a Python file and populate it with:
 
   #+BEGIN_SRC python :tangle committees.py
   from z3 import *
@@ -183,8 +196,10 @@ cry for help.
    We define a committee as a set of exactly two examiners (identified by their
    index in the list of capacities).
 
-   The instance, described in the introduction, can be represented with the
-   following Python code:
+   The code below suggests a Python representation of a problem instance. It
+   is, as you must have noticed, blurred (until you click it). This is to
+   encourage the reader to solve the problem on their own, and emphasize that
+   what will be presented is a mere suggestion on how to attack the problem.
 
    #+BEGIN_SRC python :tangle committees.py
    def example_instance():
@@ -319,7 +334,8 @@ cry for help.
     frozenset({1, 4}) = 0]
    #+END_EXAMPLE
 
-   This is not especially readable, so let's write a quick prettyprinter.
+   This is not especially readable, so let's write a quick (and completely
+   unreadable) prettyprinter.
 
    #+BEGIN_SRC python :tangle committees.py
    def prettyprint(instance, m):
