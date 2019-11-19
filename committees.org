@@ -4,19 +4,18 @@
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="Rethink/rethink.css" />
 #+OPTIONS: toc:nil num:nil html-style:nil
 
-At the Department of Informatics (University of Oslo), all exams are
-corrected by a committee consisting of two examiners. For large courses,
-there are often many examiners where some wants to correct more than others.
-The administration is responsible for forming these committees. Sometimes
-there are additional constraints on what examiners can form a committee (the
-typical example being that two examiners are professors and two are master
-students).
+At the Department of Informatics (University of Oslo), all exams are corrected
+by a committee consisting of two examiners. For large courses, there are often
+many examiners where some want to correct more than others. The administration
+is responsible for forming these committees. Sometimes there are additional
+constraints on which examiners can and cannot form a committee, for example due
+to different levels of experience.
 
 Before digitizing exams at the department, the administration would have
 physical copies of the exam to distribute. This would actually make it easier
 to form the committees, because the constraints could be handled on the fly.
-When digitized, the problem would essentially turn into a math problem which
-is not particularly easy to solve.
+When digitized, the problem would essentially turn into a math problem which in
+the general case is not particularly easy to solve.
 
 This is an actual email (in Norwegian) forwarded to me from someone in the
 administration:
@@ -43,37 +42,37 @@ Har du mulighet til å hjelpe en stakkar?
 Takk
 #+END_QUOTE
 
-Being programmers who have recently heard of this thing called SMT-solving,
-we happily research the subject in trying to find a general solution to this
-cry for help.
+We want to answer this cry for help with a general solution for this problem
+using SMT-solving.
 
 * Satisfiability modulo theories (SMT)
 
-  Satisfiability refers to solving satisfiability problems, i.e. given a first
+  SMT-solvers are tools for solving satisfiability problems, i.e. given a first
   order logical formula $\phi$, decide whether or not there exists a model
   $\mathcal{M}$ such that $\mathcal{M} \models \phi$. In general, this is an
   undecidable problem. However, there are theories within first order logic
   that are decidable. SMT solvers can produce models that satisfy a set of
-  formulas for many useful theories, some of which are satisfiable. It is
-  natural to think of SMT as a generalization of SAT, which is satisfiability
-  for propositional logic.
+  formulas for many useful theories, some of which are decidable. It is natural
+  to think of SMT as a generalization of SAT, which is satisfiability for
+  propositional logic.
 
   The solver we will be using is [[https://github.com/Z3Prover/z3][Z3]].
 
 ** Theories
 
-   Example of theories can be the theory of booleans (or propositional logic),
+   Examples of theories can be the theory of booleans (or propositional logic),
    integers or real numbers with equations and inequations, or other common
    programming concepts like arrays or bitvectors. Z3 supports solving
    constraint problems in such theories. More formally, we define theories as
    follows:
 
    #+BEGIN_definition
-   A theory is a set of first order logic formulas, closed under implication.
+   A theory is a set of first order logic formulas, closed under logical
+   consequence.
    #+END_definition
 
    We can imagine how this might work. The natural numbers can, for instance,
-   be expressed with the Peano axioms.
+   be axiomatized with the Peano axioms.
 
    1. $\forall x \in \mathbb{N} \ (0 \neq  S ( x ))$
    2. $\forall x, y \in \mathbb{N} \ (S( x ) =  S( y ) \Rightarrow x = y)$
@@ -83,14 +82,13 @@ cry for help.
    6. $\forall x, y \in \mathbb{N} \ (x \cdot  S ( y ) = x \cdot y + x )$
 
    In addition, one axiom is added to formalize induction. Because a theory is
-   closed under implication, the theory consists of all true first-order
-   propositions that follows from these axioms, which corresponds to the true
-   propositions about natural numbers.
+   closed under logical consequence, the theory consists of all true
+   first-order sentences that follow from these axioms, which correspond to the
+   true sentences about natural numbers.
 
-   However, in Z3, we don't see such axioms; they just provide the formal
-   justification for implementing special solvers for problem domains like
-   natural numbers other commonly used theories. In Z3, we could write
-   something like this:
+   However, in Z3, we don't see such axioms, but axiomatizations provide the
+   formal justification for implementing special solvers for commonly used
+   theories. In Z3, we could write something like this:
 
    #+BEGIN_SRC z3
    (declare-const a Int)
