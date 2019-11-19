@@ -1,51 +1,50 @@
+#+TITLE: SMT for IN3170
 #+AUTHOR: Lars Tveito
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="Rethink/rethink.css" />
 #+OPTIONS: toc:nil num:nil html-style:nil
 
-* Introduction
+At the Department of Informatics (University of Oslo), all exams are
+corrected by a committee consisting of two examiners. For large courses,
+there are often many examiners where some wants to correct more than others.
+The administration is responsible for forming these committees. Sometimes
+there are additional constraints on what examiners can form a committee (the
+typical example being that two examiners are professors and two are master
+students).
 
-  At the Department of Informatics (University of Oslo), all exams are
-  corrected by a committee consisting of two examiners. For large courses,
-  there are often many examiners where some wants to correct more than others.
-  The administration is responsible for forming these committees. Sometimes
-  there are additional constraints on what examiners can form a committee (the
-  typical example being that two examiners are professors and two are master
-  students).
+Before digitizing exams at the department, the administration would have
+physical copies of the exam to distribute. This would actually make it easier
+to form the committees, because the constraints could be handled on the fly.
+When digitized, the problem would essentially turn into a math problem which
+is not particularly easy to solve.
 
-  Before digitizing exams at the department, the administration would have
-  physical copies of the exam to distribute. This would actually make it easier
-  to form the committees, because the constraints could be handled on the fly.
-  When digitized, the problem would essentially turn into a math problem which
-  is not particularly easy to solve.
+This is an actual email (in Norwegian) forwarded to me from someone in the
+administration:
 
-  This is an actual email (in Norwegian) forwarded to me from someone in the
-  administration:
+#+BEGIN_QUOTE
+Mine mattekunnskaper er tydeligvis fraværende. Jeg klarer ikke finne en
+fornuftig løsning på dette:
 
-  #+BEGIN_QUOTE
-  Mine mattekunnskaper er tydeligvis fraværende. Jeg klarer ikke finne en
-  fornuftig løsning på dette:
+| A: | 160 |
+| B: | 150 |
+| C: | 110 |
+| D: |  60 |
+| E: |  60 |
+| F: |  30 |
 
-  | A: | 160 |
-  | B: | 150 |
-  | C: | 110 |
-  | D: |  60 |
-  | E: |  60 |
-  | F: |  30 |
+Det er snakk om sensur i inf1300 med 283 besvarelser. D og E kan ikke rette
+mot hverandre. De bør helst rette mot B eller C.
 
-  Det er snakk om sensur i inf1300 med 283 besvarelser. D og E kan ikke rette
-  mot hverandre. De bør helst rette mot B eller C.
+Har du et bra forslag til meg? Jeg blir GAL. Det var bedre før, da jeg hadde
+besvarelsene fysisk å kunne telle ark.
 
-  Har du et bra forslag til meg? Jeg blir GAL. Det var bedre før, da jeg hadde
-  besvarelsene fysisk å kunne telle ark.
+Har du mulighet til å hjelpe en stakkar?
 
-  Har du mulighet til å hjelpe en stakkar?
+Takk
+#+END_QUOTE
 
-  Takk
-  #+END_QUOTE
-
-  Being programmers who have recently heard of this thing called SMT-solving,
-  we happily research the subject in trying to find a general solution to this
-  cry for help.
+Being programmers who have recently heard of this thing called SMT-solving,
+we happily research the subject in trying to find a general solution to this
+cry for help.
 
 * Satisfiability modulo theories (SMT)
 
