@@ -25,12 +25,12 @@ administration:
 Mine mattekunnskaper er tydeligvis fraværende. Jeg klarer ikke finne en
 fornuftig løsning på dette:
 
-| A: | 160 |
-| B: | 150 |
-| C: | 110 |
-| D: |  60 |
-| E: |  60 |
-| F: |  30 |
+| A | 160 |
+| B | 150 |
+| C | 110 |
+| D |  60 |
+| E |  60 |
+| F |  30 |
 
 Det er snakk om sensur i inf1300 med 283 besvarelser. D og E kan ikke rette
 mot hverandre. De bør helst rette mot B eller C.
@@ -499,14 +499,51 @@ cry for help.
    with correcting $40$ and /actually/ willing to correct $52$. Therefore, we
    can try to add some slack to the capacity.
 
+   In reality, the numbers from the original email were
+
+   | A | 158 |
+   | B | 150 |
+   | C | 108 |
+   | D |  60 |
+   | E |  60 |
+   | F |  15 |
+
+   But when we add them up, it turns out that they only have capacity to
+   correct $551$ exams (and we need $2*N = 566$).
+
+   We create a new instance with the original values.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def original_instance():
+       N = 283
+       #    A    B    C    D   E   F
+       C = [158, 150, 108, 60, 60, 15]
+       S = {3 : {1, 2}, 4 : {1, 2}}
+       A = {frozenset([3, 4])}
+       return (N, C, S, A)
+   #+END_SRC
+
+   Now we can compute a "badness"-score (or weight) for the examiners
+   capacities, rather than just stating we cannot surpass their capacity.
+
    #+BEGIN_SRC python :tangle committees.py
    def capacity_slack(comms, i, C):
        a = sum(comms[c] for c in comms if i in c)
        return If(a > C[i], a - C[i], C[i] - a)
+   #+END_SRC
 
+   For the total weight of the capacities, we try to just sum the weights for
+   each examiner.
+
+   #+BEGIN_SRC python :tangle committees.py
    def capacity_weight(comms, C):
        return sum(capacity_slack(comms, i, C) for i in range(len(C)))
    #+END_SRC
+
+   We can now add all of the optimization objectives, stating that it most
+   important to respect the capacities of the examiners, then prefer a small
+   number of committees, and lastly the /should/ requirement from the previous
+   section.
 
    #+BEGIN_SRC python :tangle committees.py
    def optimize_instance(instance):
@@ -526,6 +563,40 @@ cry for help.
        o.check()
        return o.model()
    #+END_SRC
+
+   We now get something like:
+
+   #+BEGIN_EXAMPLE
+   0: 158/158
+   1: 158/150
+   2: 110/108
+   3: 60/60
+   4: 65/60
+   5: 15/15
+
+   0, 1: 158
+   2, 3: 45
+   2, 4: 65
+   3, 5: 15
+   #+END_EXAMPLE
+
+   If we were to prioritize the /should/ requirement over minimizing the number
+   of committees, then we would get something like:
+
+   #+BEGIN_EXAMPLE
+   0: 158/158
+   1: 151/150
+   2: 109/108
+   3: 64/60
+   4: 61/60
+   5: 23/15
+
+   0, 1: 26
+   0, 2: 109
+   0, 5: 23
+   1, 3: 64
+   1, 4: 61
+   #+END_EXAMPLE
 
 * COMMENT Local variables
   # Local Variables:
