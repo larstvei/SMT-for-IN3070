@@ -1,5 +1,6 @@
 #+TITLE: SMT for IN3070
 #+AUTHOR: Lars Tveito
+#+HTML_HEAD: <script type="text/javascript" src="js/script.js"></script>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="Rethink/rethink.css" />
 #+OPTIONS: toc:nil num:nil html-style:nil
 
