@@ -646,6 +646,40 @@ cry for help.
    or removing some constraints. Once you have a well-functioning prototype,
    you can start looking for a more efficient solution if necessary.
 
+** Exercises for the curious
+
+   If you found this interesting, then consider solving some problems with SMT
+   solving.
+
+*** The exam committee problem
+
+    Try to walk through the problem we have discussed here. Feel free to sneak
+    a peak at the code whenever you get stuck. You might find a more efficient
+    encoding or a more elegant one. Maybe you want to make it accessible
+    through a web page, so that this example actually ends up helping the
+    administration with this problem. Play around, and let me know if you do
+    something cool with it!
+
+    Another exercise, which is by no means an easy one, is to show that this
+    problem is in P or is NP-complete. Currently, we have not been able to
+    prove it either way. Note that this is far from the interest area of
+    IN3070, but I find it interesting, and think maybe you do to.
+
+*** Puzzles
+
+   Many puzzle games are NP-complete, and have a nice encoding in SMT.
+
+   Perhaps the most common example used when presenting SMT is [[https://en.wikipedia.org/wiki/Sudoku][Sudoku]]. Write
+   one yourself, and if you get stuck there are many nice, and easily
+   googleable, resources.
+
+   Another example is [[https://en.wikipedia.org/wiki/Mastermind_(board_game)][Mastermind]]; if it's too hard, make the rules simpler.
+   [[https://projecteuler.net/problem=185][This problem from Project Euler]] is presents a simplified version of
+   mastermind, and can be solved quite elegantly with Z3.
+
+   Do you have a favorite puzzle game? See if you can model it as an SMT
+   problem, and write a solver for it.
+
 * COMMENT Local variables
   # Local Variables:
   # eval: (add-hook 'after-save-hook 'org-html-export-to-html nil t)
