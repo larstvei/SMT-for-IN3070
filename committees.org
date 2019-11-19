@@ -254,46 +254,29 @@ cry for help.
        return [0 <= comms[c] for c in comms]
    #+END_SRC
 
+** Committee constraints
+
    The $S$ relation is sort of odd. That one examiner /should/ form a committee
-   with someone they relate to by $S$. Let's interpret it as $e_1$ should not
-   form a committee to someone they are not related to by $S$.
-
-   #+BEGIN_SRC python :tangle committees.py
-   def should_correct_with_constraint(comms, S, C):
-       examiners = set(range(len(C)))
-       return [comms[frozenset([i, j])] == 0
-               for i in S
-               for j in examiners - S[i]
-               if j != i]
-   #+END_SRC
-
-   The $A$ relation is similar, and easier.
+   with someone they relate to by $S$. This is not an absolute requirement,
+   which is not ideal for a satisfiability problem, so we will ignore this
+   constraint for now. The $A$ relation is similar, but clearer. For any pair
+   $(i,j) \in A$, we don't form a committee consisting of those examiners.
 
    #+BEGIN_SRC python :tangle committees.py
    def avoid_correct_with_constraint(comms, A):
        return [comms[frozenset([i, j])] == 0 for i, j in A]
    #+END_SRC
 
-   Each committee will correct their exams to times, so if the sum of all the
-   committees is $N$, then all exams have been corrected twice. Let's encode
-   that as a constraint.
+** All exams are corrected constraint
+
+   Each committee correct their exams two times (once by each examiner), so if
+   the sum of all the committees is $N$, then all exams have been corrected
+   twice (presumably by two different examiners). Let's encode that as a
+   constraint.
 
    #+BEGIN_SRC python :tangle committees.py
    def all_corrected_constraint(comms, N):
-       return [sum(comms.values()) == N]
-   #+END_SRC
-
-   Let's collect all the constraints in a single list.
-
-   #+BEGIN_SRC python :tangle committees.py
-   def constraints(instance):
-       N, C, S, A = instance
-       comms = committees(C)
-       return (capacity_constraint(comms, C) +
-               non_negative_constraint(comms) +
-               all_corrected_constraint(comms, N) +
-               should_correct_with_constraint(comms, S, C) +
-               avoid_correct_with_constraint(comms, A))
+       return sum(comms.values()) == N
    #+END_SRC
 
 ** Invoking Z3
@@ -302,9 +285,15 @@ cry for help.
 
    #+BEGIN_SRC python :tangle committees.py
    def check_instance(instance):
+       N, C, S, A = instance
+       comms = committees(C)
+
        s = Solver()
 
-       s.add(constraints(instance))
+       s.add(capacity_constraint(comms, C))
+       s.add(non_negative_constraint(comms))
+       s.add(all_corrected_constraint(comms, N))
+       s.add(avoid_correct_with_constraint(comms, A))
 
        s.check()
        return s.model()
@@ -333,12 +322,17 @@ cry for help.
    This is not especially readable, so let's write a quick prettyprinter.
 
    #+BEGIN_SRC python :tangle committees.py
-   def prettyprint(m):
-       for k in m:
-           cname = k.name()[10:-1]
-           cval = m[k].as_long()
-           if cval > 0:
-               print(cname + ':', cval)
+   def prettyprint(instance, m):
+       N, C, S, A = instance
+       comms = committees(C)
+       exams = [sum(m[comms[c]].as_long() for c in comms if i in c)
+                for i in range(len(C))]
+       examiners = '\n'.join(['%d: %d/%d' % (i, exams[i], C[i])
+                              for i in range(len(C))])
+       cs = [(c, m[comms[c]].as_long()) for c in sorted(comms, key=sorted)]
+       csstr = '\n'.join([', '.join(map(str, sorted(c))) + ': ' + str(cv)
+                          for c, cv in cs if cv > 0])
+       print(examiners + '\n\n' + csstr)
    #+END_SRC
 
    This outputs the something like:
@@ -353,52 +347,145 @@ cry for help.
    #+END_EXAMPLE
 
    Note the /something like/. There are multiple ways to satisfy this set of
-   constraints, and Z3 only guarantees to provide /some/ solution (if one
-   exists).
+   constraints, and Z3 only provide /some/ solution (if one exists).
 
 * Optimization
 
-  So far, we have found a way to model the problem and satisfy all the
-  constraint. However, it is preferable to have fewer committees, because all
-  committees have to discuss the exams, causing administrative overhead. Z3
-  also provides optimization, meaning that we can find a smallest or largest
-  solution for numeric theories.
+  So far, we have found a way to model the problem and satisfy the constraints.
+  However, it is preferable to have fewer committees, because all committees
+  have to discuss the exams, causing administrative overhead. Z3 also provides
+  optimization, meaning that we can find a smallest or largest solution for
+  numeric theories. The underlying theory for optimization is MaxSMT.
 
 ** Minimize committees
 
-   In our case, we want to minimize the number of committees.
+   In our case, we want to minimize the number of committees. First we write a
+   function to find the number of committees which we will soon minimize.
 
-    #+BEGIN_SRC python :tangle committees.py
-    def minimize_committees(comms):
-        return sum(If(0 < comms[c], 1, 0) for c in comms)
-    #+END_SRC
+   #+BEGIN_SRC python :tangle committees.py
+   def number_of_committees(comms):
+       return sum(If(0 < comms[c], 1, 0) for c in comms)
+   #+END_SRC
 
-    Now we can invoke Z3, using an ~Optimize~ instance and adding our
-    minimization constraint.
+   Now we can invoke Z3, using an ~Optimize~ instance and adding our
+   minimization constraint.
 
-    #+BEGIN_SRC python :tangle committees.py
-    def optimize_instance(instance):
-        o = Optimize()
+   #+BEGIN_SRC python :tangle committees.py
+   def optimize_instance(instance):
+       N, C, S, A = instance
+       comms = committees(C)
 
-        o.add(constraints(instance))
-        o.minimize(minimize_committees(committees(instance)))
+       o = Optimize()
 
-        o.check()
-        return o.model()
-    #+END_SRC
+       o.add(capacity_constraint(comms, C))
+       o.add(non_negative_constraint(comms))
+       o.add(all_corrected_constraint(comms, N))
+       o.add(avoid_correct_with_constraint(comms, A))
 
-    There is still more than one way to satisfy this model, but we are
-    guaranteed to get a minimal number of committees (which is 6 in our
-    example).
+       o.minimize(number_of_committees(comms))
 
-    #+BEGIN_EXAMPLE
-    {2, 3}: 56
-    {0, 1}: 137
-    {2, 5}: 7
-    {0, 5}: 23
-    {2, 4}: 47
-    {1, 4}: 13
-    #+END_EXAMPLE
+       o.check()
+       return o.model()
+   #+END_SRC
+
+   There is still more than one way to satisfy this model, but we are
+   guaranteed to get a minimal number of committees (which is 6 in our
+   example).
+
+   #+BEGIN_EXAMPLE
+   {2, 3}: 56
+   {0, 1}: 137
+   {2, 5}: 7
+   {0, 5}: 23
+   {2, 4}: 47
+   {1, 4}: 13
+   #+END_EXAMPLE
+
+** Dealing with /should/
+
+   Remember $S$, which maps examiners to other examiners they /should/ form a
+   committee with. With optimization, we now have a way of expressing that some
+   solution is more preferable than another. One way to model this is
+   maximizing the number of exams given to committees that consists of an
+   examiner $i$ that should be in a committee with examiner $j$. We want this
+   for all such pairs $i,j$, and can achieve this by summing all such
+   committees.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def should_correct_with_weight(comms, S, C):
+       return sum(comms[frozenset([i, j])] for i in S for j in S[i])
+   #+END_SRC
+
+   When adding multiple optimization objectives (or goals), Z3 defaults to
+   order the objectives lexicographically, i.e. in the order they appear. If we
+   place the minimization of committees before the
+   ~should_correct_with_weight~, then we still are guaranteed to get a minimal
+   number of committees.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def optimize_instance(instance):
+       N, C, S, A = instance
+       comms = committees(C)
+
+       o = Optimize()
+
+       o.add(capacity_constraint(comms, C))
+       o.add(non_negative_constraint(comms))
+       o.add(all_corrected_constraint(comms, N))
+       o.add(avoid_correct_with_constraint(comms, A))
+
+       o.minimize(number_of_committees(comms))
+       o.maximize(should_correct_with_weight(comms, S, C))
+
+       o.check()
+       return o.model()
+   #+END_SRC
+
+   #+BEGIN_EXAMPLE
+   {0, 2}: 50
+   {1, 3}: 60
+   {1, 5}: 7
+   {2, 4}: 60
+   {0, 5}: 23
+   {0, 1}: 83
+   #+END_EXAMPLE
+
+** Optimize for capacities
+
+   Maybe we can try to satisfy (🙃) all the examiners by trying to close the
+   gap between their capacity and the number of exams they end up correcting.
+   Usually at the Department, there is quite a lot of flex in these capacities;
+   if you are willing to correct $50$ exams, then you will most likely be okey
+   with correcting $40$ and /actually/ willing to correct $52$. Therefore, we
+   can try to add some slack to the capacity.
+
+   #+BEGIN_SRC python :tangle committees.py
+   def capacity_slack(comms, i, C):
+       a = sum(comms[c] for c in comms if i in c)
+       return If(a > C[i], a - C[i], C[i] - a)
+
+   def capacity_weight(comms, C):
+       return sum(capacity_slack(comms, i, C) for i in range(len(C)))
+   #+END_SRC
+
+   #+BEGIN_SRC python :tangle committees.py
+   def optimize_instance(instance):
+       N, C, S, A = instance
+       comms = committees(C)
+
+       o = Optimize()
+
+       o.add(non_negative_constraint(comms))
+       o.add(all_corrected_constraint(comms, N))
+       o.add(avoid_correct_with_constraint(comms, A))
+
+       o.minimize(capacity_weight(comms, C))
+       o.minimize(number_of_committees(comms))
+       o.maximize(should_correct_with_weight(comms, S, C))
+
+       o.check()
+       return o.model()
+   #+END_SRC
 
 ** COMMENT Implementation draft
 
@@ -412,7 +499,7 @@ cry for help.
    s.add(capacity_constraint(comms, C))
    s.add(non_negative_constraint(comms))
    s.add(all_corrected_constraint(comms, N))
-   s.add(should_correct_with_constraint(comms, S, C))
+   s.add(should_correct_with_weight(comms, S, C))
    s.add(avoid_correct_with_constraint(comms, A))
 
    s.check()
