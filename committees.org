@@ -154,8 +154,8 @@ using SMT-solving.
    $\Sigma_{int} = (S_{Int}, F_{Int}, P_{Int})$ where
    - $S_{Int} = \{Int\}$
    - $F_{Int} = \{0, 1, +, -, *\}$ where the constant symbols $0, 1$ has a type
-     signature $\to Int$ and the function symbols $+,-,*$ has a type signature
-     $Int \times Int \to Int$.
+     $Int$ and the function symbols $+,-,*$ has a type signature $Int \times
+     Int \to Int$.
    - $P_{Int} = \{<, =\}$ where the predicate symbols $<, =$ has type signature
      $Int \times Int$.
 
@@ -172,7 +172,7 @@ using SMT-solving.
   We use the [[https://ericpony.github.io/z3py-tutorial/guide-examples.htm][Python API for Z3]]. Install with:
 
   #+BEGIN_SRC sh
-   pip install z3-solver
+   pip3 install z3-solver
   #+END_SRC
 
   Create a Python file and populate it with:
@@ -451,7 +451,7 @@ using SMT-solving.
    When adding multiple optimization objectives (or goals), Z3 defaults to
    order the objectives lexicographically, i.e. in the order they appear. If we
    place the minimization of committees before the
-   ~should_correct_with_weight~, then we still are guaranteed to get a minimal
+   ~should_correct_with_weight~, then we are still guaranteed to get a minimal
    number of committees.
 
    #+BEGIN_SRC python :tangle committees.py
@@ -526,7 +526,7 @@ using SMT-solving.
    capacities, rather than just stating we cannot surpass their capacity.
 
    #+BEGIN_SRC python :tangle committees.py
-   def capacity_slack(comms, i, C):
+   def capacity_weight(comms, i, C):
        a = sum(comms[c] for c in comms if i in c)
        return If(a > C[i], a - C[i], C[i] - a)
    #+END_SRC
@@ -536,7 +536,7 @@ using SMT-solving.
 
    #+BEGIN_SRC python :tangle committees.py
    def capacity_weight(comms, C):
-       return sum(capacity_slack(comms, i, C) for i in range(len(C)))
+       return sum(capacity_weight(comms, i, C) for i in range(len(C)))
    #+END_SRC
 
    We can now add all of the optimization objectives, stating that it most
@@ -616,18 +616,19 @@ using SMT-solving.
    It is important to try to compartmentalize your SMT-instances; solving many
    small SMT-instances is likely to be more efficient than solving one large.
    Look for ways to divide your problem into sub-problems, and try to exclude
-   the "obvious" part of a problem from the SMT-instance.
+   the "obvious" part of a problem from the SMT-instance and move it to the
+   host language (in our case Python).
 
-   An example where we violated this is with the requirement that examiners
-   $(i,j) \in A$ can not form a committee. Rather than encoding that those
-   committees are not given any exams to correct, we could simply remove those
+   An example of where we did not follow this advice, were with the requirement
+   that examiners $(i,j) \in A$ can not form a committee. Rather than encoding
+   that those committees correct zero exams, we could simply remove those
    integer constants. Note that this is not a dramatic example, as the
    constraint is very simple and most likely trivial for Z3 to handle.
 
 ** When to use SMT
 
    If your problem is known to be NP-complete and has an elegant formulation in
-   a many-sorted logic, then using tools like Z3 could be a very good idea.
+   SMT, then using a tool like Z3 could be a very good idea.
 
    Another situation is when you currently don't know how hard the problem is.
    Specifying your problem in terms of constraints helps you understand the
