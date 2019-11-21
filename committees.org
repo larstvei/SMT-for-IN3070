@@ -609,9 +609,9 @@ using SMT-solving.
 ** When not to use SMT
 
    SAT is an NP-complete problem, and solving for richer theories does not
-   reduce this complexity. So in general, SMT solving is NP-complete and not
-   even decidable in all cases. If you are presented with a problem that has a
-   known polynomial algorithm, then don't use an SMT solver.
+   reduce this complexity. So in general, SMT solving is NP-hard and not even
+   decidable in all cases. If you are presented with a problem that has a known
+   polynomial algorithm, then don't use an SMT solver.
 
    It is important to try to compartmentalize your SMT-instances; solving many
    small SMT-instances is likely to be more efficient than solving one large.
